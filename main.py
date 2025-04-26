@@ -6,7 +6,7 @@ from handlers import setup_handlers
 from data_storage import set_bot_commands
 
 
-async def main() -> None: # Запуск команды
+async def main() -> None:
     bot = Bot(token=config.TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
 
