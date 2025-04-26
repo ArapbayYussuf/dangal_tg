@@ -20,28 +20,28 @@ menu_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         InlineKeyboardButton(text="Привычка✅", callback_data="show_habits")
     ],
     [
-        InlineKeyboardButton(text="Добавить ностроение😊", callback_data="add_mood"),
-        InlineKeyboardButton(text="Ностроение📊", callback_data="show_mood")
+        InlineKeyboardButton(text="Добавить настроение😊", callback_data="add_mood"),
+        InlineKeyboardButton(text="Настроение📊", callback_data="show_mood")
     ]
 ])
 
 async def start_handler(message: types.Message) -> None:
     """
-    Команда /nachat
+    Команда /start
     """
     text = (
-        "Привет! Я твой личный помощник для управления делами и настроением.\n\n"
+        "Привет! Я *Напомни мне* — твой личный помощник для управления делами и настроением.\n\n"
         "Я помогу тебе организовать расписание, следить за привычками и отслеживать настроение.\n\n"
         "Используй /help, чтобы узнать больше!"
     )
-    await message.answer(text, reply_markup=menu_keyboard)
+    await message.answer(text, reply_markup=menu_keyboard, parse_mode="Markdown")
 
 async def help_handler(message: types.Message) -> None:
     """
     Команда /help
     """
     text = (
-        "Я умею:\n"
+        "Я *Напомни мне*, и я умею:\n"
         "- Добавить событие в расписание: /dobavit_sobytie\n"
         "- Показать расписание: /raspisanue\n"
         "- Удалить событие: /udalit_sobytie\n"
@@ -50,8 +50,9 @@ async def help_handler(message: types.Message) -> None:
         "- Записать настроение: /dobavit_nastroenie\n"
         "- Показать настроение: /nastroenie\n"
         "- Отменить действие: /otmena\n\n"
+        "Нажми /start, чтобы вернуться в меню!"
     )
-    await message.answer(text)
+    await message.answer(text, parse_mode="Markdown")
 
 async def cancel_handler(message: types.Message, state: FSMContext) -> None:
     """
@@ -320,7 +321,7 @@ async def callback_show_mood(callback_query: types.CallbackQuery) -> None:
     Обрабатывает нажатие на инлайн-кнопку для показа настроения
     """
     if not data["mood_log"]:
-        await callback_query.message.answer("Нет записей о настроении.")
+        await callback_query.message.answer("Нет записей о настроения.")
     else:
         text: str = "Ваши записи о настроении:\n"
         for mood in data["mood_log"]:
@@ -332,7 +333,7 @@ def setup_handlers(dp: Dispatcher) -> None:
     """
     Регистрирует обработчики команд
     """
-    dp.message.register(start_handler, Command("nachat"))
+    dp.message.register(start_handler, Command("start"))
     dp.message.register(help_handler, Command("help"))
     dp.message.register(cancel_handler, Command("otmena"))
     dp.message.register(add_event_handler, Command("dobavit_sobytie"))

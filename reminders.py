@@ -1,54 +1,92 @@
-import asyncio
-from datetime import datetime, timedelta
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
-from data_storage import data, save_data
+from data_storage import load_data, save_data
+from typing import Dict, Any
 import logging
 
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования
 logger = logging.getLogger(__name__)
 
+# Инициализация планировщика
+scheduler = AsyncIOScheduler()
 
-async def check_reminders(bot: Bot) -> None:
-    """
-    Периодически проверяет расписание и отправляет напоминания за 10 минут до события.
-    """
-    logger.info("Начало проверки напоминаний")
-    while True:
-        current_time = datetime.now()
-        logger.debug(f"Текущее время: {current_time.strftime('%H:%M:%S')}")
+class Reminder:
+    def __init__(self, bot: Bot):
+        self.bot = bot
+        self.setted_up = False
+        self.data: Dict[str, Any] = load_data()
 
-        for event in data["schedule"]:
-            try:
-                if not all(key in event for key in ["time", "name", "chat_id"]):
-                    logger.warning(f"Некорректное событие: {event}. Пропускаем.")
-                    continue
+    def setup(self):
+        """
+        Настраивает планировщик для напоминаний.
+        """
+        scheduler.start()
+        self.schedule_reminders()
+        self.setted_up = True
+        logger.info("Reminder setup completed.")
 
-                event_time = datetime.strptime(event["time"], "%H:%M")
-                event_time = current_time.replace(
-                    hour=event_time.hour, minute=event_time.minute, second=0, microsecond=0
-                )
-                time_diff = (event_time - current_time).total_seconds() / 60
-                logger.debug(
-                    f"Событие: {event['name']} в {event['time']}, разница: {time_diff:.2f} минут, notified: {event.get('notified')}")
+    def shutdown(self):
+        """
+        Останавливает планировщик.
+        """
+        scheduler.shutdown()
+        self.setted_up = False
+        logger.info("Reminder shutdown completed.")
 
-                if 9 <= time_diff <= 11 and not event.get("notified", False):
-                    logger.info(f"Отправка напоминания для {event['name']} в чат {event['chat_id']}")
-                    await bot.send_message(
-                        chat_id=event["chat_id"],
-                        text=f"⏰ *Напоминание!* Через 10 минут: *{event['name']}* в {event['time']}",
-                        parse_mode="Markdown"
-                    )
-                    event["notified"] = True
-                    save_data()
-                elif time_diff < -1 and event.get("notified", False):
-                    event["notified"] = False
-                    logger.debug(f"Сброс notified для события: {event['name']}")
-                    save_data()
-            except ValueError as e:
-                logger.error(f"Ошибка формата времени для события {event.get('name', 'Unknown')}: {e}")
-                continue
-            except Exception as e:
-                logger.error(f"Общая ошибка при обработке события {event.get('name', 'Unknown')}: {e}")
-                continue
+    def schedule_reminders(self):
+        """
+        Настраивает напоминания на основе событий из расписания.
+        """
+        # Очищаем существующие задачи
+        scheduler.remove_all_jobs()
 
-        await asyncio.sleep(10)  # Проверяем каждые 10 секунд для точности
+        # Загружаем данные
+        self.data = load_data()
+        chat_id = self.data.get("chat_id")
+
+        if not chat_id:
+            logger.warning("Chat ID not found in data. Reminders will not be scheduled.")
+            return
+
+        # Добавляем задачи для каждого события в расписании
+        for event in self.data["schedule"]:
+            time_str = event["time"]  # Формат времени: "ЧЧ:ММ"
+            event_name = event["name"]
+
+            # Разделяем время на часы и минуты
+            hours, minutes = map(int, time_str.split(":"))
+
+            # Добавляем задачу в планировщик
+            scheduler.add_job(
+                self.send_reminder,
+                trigger="cron",
+                hour=hours,
+                minute=minutes,
+                args=[chat_id, f"{time_str} — {event_name}"]
+            )
+            logger.info(f"Scheduled reminder for {time_str} — {event_name}")
+
+    async def send_reminder(self, chat_id: int, message: str) -> None:
+        """
+        Отправляет напоминание в указанный чат.
+        """
+        try:
+            await self.bot.send_message(chat_id=chat_id, text=f"Напоминание: {message}")
+            logger.info(f"Reminder sent to chat {chat_id}: {message}")
+        except Exception as e:
+            logger.error(f"Error sending reminder to chat {chat_id}: {e}")
+
+    def execute(self):
+        """
+        Выполняет настройку напоминаний.
+        """
+        self.schedule_reminders()
+
+    def __call__(self, *args, **kwargs):
+        """
+        Вызывает execute, если Reminder настроен.
+        """
+        if not self.setted_up:
+            logger.error("Reminder has not been set up!")
+            return
+        self.execute()

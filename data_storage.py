@@ -31,6 +31,7 @@ async def set_bot_commands(bot) -> None:
     from aiogram.types import BotCommand
     commands = [
         BotCommand(command="/start", description="Начать работу с ботом"),
+        BotCommand(command="/help", description="Показать список команд"),
         BotCommand(command="/dobavit_sobytie", description="Добавить событие в расписание"),
         BotCommand(command="/raspisanue", description="Показать расписание"),
         BotCommand(command="/udalit_sobytie", description="Удалить событие из расписания"),
