@@ -26,17 +26,18 @@ def save_data() -> None:
 
 async def set_bot_commands(bot) -> None:
     """
-    Команды для бота
+    Устанавливает команды для бота
     """
     from aiogram.types import BotCommand
     commands = [
-        BotCommand(command="/start", description="Приветствие"),
-        BotCommand(command="/add_event", description="Добавить новое событие"),
-        BotCommand(command="/schedule", description="Показать текущее расписание"),
-        BotCommand(command="/remove_event", description="Удалить событие"),
-        BotCommand(command="/add_habit", description="Добавить привычку"),
-        BotCommand(command="/habits", description="Показать привычки"),
-        BotCommand(command="/add_mood", description="Добавить настроение"),
-        BotCommand(command="/mood", description="Показать записи о настроении")
+        BotCommand(command="/nachat", description="Начать работу с ботом"),
+        BotCommand(command="/dobavit_sobytie", description="Добавить событие в расписание"),
+        BotCommand(command="/raspisanue", description="Показать расписание"),
+        BotCommand(command="/udalit_sobytie", description="Удалить событие из расписания"),
+        BotCommand(command="/dobavit_privychku", description="Добавить новую привычку"),
+        BotCommand(command="/privychki", description="Показать список привычек"),
+        BotCommand(command="/dobavit_nastroenie", description="Записать настроение"),
+        BotCommand(command="/nastroenie", description="Показать записи настроения"),
+        BotCommand(command="/otmena", description="Отменить текущее действие")
     ]
     await bot.set_my_commands(commands)
